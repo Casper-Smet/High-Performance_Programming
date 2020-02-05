@@ -9,7 +9,7 @@ def selection_sort(data: List[int]) -> None:
 
         # loop to find index of smallest element
         for index2 in range(index1 + 1, len(data)):
-            if data[index2] < data[index1]:
+            if data[index2] < data[smallest]:
                 smallest = index2
 
         # swap smallest element into position
@@ -24,7 +24,6 @@ def recursive_selection_sort(data: List[int]) -> None:
         smallest = min(data)    # find the smallest element in the list
         data.remove(smallest)   # remove from the list
         return [smallest] + recursive_selection_sort(data) # put on front of to be sorted remainder
-
 
 def insertion_sort(data: List[int]) -> None:
     """Sorting an array in place using insertion sort."""
