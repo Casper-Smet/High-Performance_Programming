@@ -1,6 +1,6 @@
 import numpy as np
-import cProfile
 import time
+import matplotlib.pyplot as plt
 
 import threading
 
@@ -14,7 +14,9 @@ class sorterThead(threading.Thread):
     def run(self):
         self.array = recursive_merge_sort(self.array)
 
+
     def get(self):
+        self.join()
         return self.array
 
 
@@ -30,8 +32,6 @@ def recursive_merge_sort(sub_array: np.array):
                 )
 
 
-    
-
 def merge(left: np.array, right: np.array):
     index_left   = 0
     index_right  = 0
@@ -42,7 +42,7 @@ def merge(left: np.array, right: np.array):
     size_result = size_left + size_right
 
     result = np.empty(size_result, dtype=left.dtype)
-
+    
     while index_left < size_left and index_right < size_right and index_result < size_result:
         if left[index_left] < right[index_right]:
             result[index_result] = left[index_left]
@@ -52,39 +52,51 @@ def merge(left: np.array, right: np.array):
             index_right += 1
 
         index_result += 1
-
     return np.concatenate((result[:index_result], left[index_left:], right[index_right:]))
 
 
 def threaded_sort(array: np.array, max_threads=4):
     threads = []
-    for sub_array in np.array_split(array, min(max_threads, array.size)):
-        new_thread = sorterThead([sub_array])
-        threads.append(new_thread)
-        new_thread.start()
-
-    result_array = threads[0].get()
-    for thread in threads[1:]:
-        thread.join()
-        result_array = merge(result_array, thread.get())
-
-    return result_array
+    if max_threads > 1:
         
+        for sub_array in np.array_split(array, min(max_threads, array.size)):
+            new_thread = sorterThead([sub_array])
+            threads.append(new_thread)
+            new_thread.start()
+            
+
+        result_array = threads[0].get()
+        for thread in threads[1:]:
+            thread.join()
+            result_array = merge(result_array, thread.get())
+    else:
+        result_array = recursive_merge_sort(array)
+    return result_array
+
+def test_time():
+    print(time.time())
+    arrays = [np.random.randint(0, 100, 10000) for i in range(100)]
+    for threads in [1, 2, 4, 8]:
+        temp_times = []
+        for array in arrays:
+            thr1 = time.time()
+            thread_sorted_array = threaded_sort(array, max_threads=threads)
+            thr2 = time.time()
+            temp_times.append(thr2-thr1)
+
+        temp_times_array = np.array(temp_times)
+        average_time = np.average(temp_times_array)
+        std_time = np.std(temp_times_array)
+        
+        
+        plt.scatter(threads, average_time, label=f"Threads: {threads}; Avg Time: {average_time} +/- {std_time}")
+    plt.legend()
+    plt.show()
+    print(time.time())
+
+
 def main():
-    # array = np.array([2, 5, 1, 3, 7, 4, 2, 3, 9, 8, 6, 3])
-    array = np.random.randint(0, 100, 1000)
-    
-    reg1 = time.time()
-    sorted_array = recursive_merge_sort(array)
-    reg2 = time.time()
-
-
-    thr1 = time.time()
-    thread_sorted_array = threaded_sort(array)
-    thr2 = time.time()
-
-
-    print(reg2-reg1, thr2 - thr1)
+    test_time()
 
 
 if __name__ == "__main__":
