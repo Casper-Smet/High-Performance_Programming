@@ -13,46 +13,77 @@
 
 void readArray(char * fileName, double ** a, int * n);
 double sumArray(double * a, int numValues);
-double paralellArray(double * a, int numValues, int numThreads);
+double paralellSumArray(double * a, int numValues, int numThreads);
+
+void testTime(char * fileName);
+double * testSerial(double * a, int numValues);
+double ** testParalell(double * a, int numValues);
+
+
 // TODO Remove need for commandline arguments
 // TODO Write to file, csv
 // TODO Analyse data with excel
 int main(int argc, char * argv[])
 {
-  int  howMany;
-  double sum;
-  double serial_sum;
-  double * a;
+  // char files[4][5] = {"010k", "100k", "001m", "010m"};
+  // int i;
+  // for (i = 0; i < 4; i++) {
+  //   printf("%s", files[i]);
+  //   // testTime(files[i]);
+  // } 
+  testTime("010k");
+  return 0;
+}
 
-  if (argc != 2) {
-    fprintf(stderr, "\n*** Usage: arraySum <inputFile>\n\n");
-    exit(1);
+double * testSerial(double * a, int numValues) {
+  // Time and run serial
+  double sTimes[2];
+
+  sTimes[0] = omp_get_wtime();
+  sumArray(a, numValues);
+  sTimes[1] = omp_get_wtime();
+
+  return sTimes;
+}
+
+double ** testParalell(double * a, int numValues) {
+  int i;
+  double pTimes[4][2];
+
+  int threadOptions[4] = {1, 2, 4, 8};
+  int threadOption;
+  for (i = 0; i < 4; i++) {
+    threadOption = threadOptions[i];
+    // Start time
+    pTimes[i][0] = omp_get_wtime();
+    paralellSumArray(a, numValues, threadOption);
+    // End time
+    pTimes[i][1] = omp_get_wtime();
   }
-  readArray(argv[1], &a, &howMany);
 
-  double start = omp_get_wtime();
-  sum = paralellArray(a, howMany, 4);
-  double end = omp_get_wtime();
-  double exec_time = end - start;
+  return pTimes;
+}
 
-  printf("The sum of the values in the input file '%s' is %g\n",
-           argv[1], sum); 
-  printf("Parallel execution time: %f\n", exec_time);
-
-
-  double serial_start = omp_get_wtime();
-  serial_sum = sumArray(a, howMany);
-  double serial_end = omp_get_wtime();
-  double serial_exec_time = serial_end - serial_start;
-  printf("Serial execution time: %f\n", serial_exec_time);
-
-  double abs_diff = fabs(serial_exec_time - exec_time);
-  printf("Absolute difference: %f\n", abs_diff);
+void testTime(char * fileName) {
+  // Variables for collecting array
+  int howMany;
+  double * a;
   
+  
+  // Variables for timing
+  double ** pTimes;
+  double * sTimes;
+
+
+  readArray(fileName, &a, &howMany);
+
+  // Time and run parallel
+  pTimes = testParalell(a, howMany);
+  // Time and run serial
+  sTimes = testSerial(a, howMany);
 
   free(a);
 
-  return 0;
 }
 
 /* readArray fills an array with values from a file.
@@ -112,12 +143,15 @@ double sumArray(double * a, int numValues) {
 }
 
 
-double paralellArray(double * a, int numValues, int numThreads) {
+double paralellSumArray(double * a, int numValues, int numThreads) {
   int i;
   double result = 0.0;
-  #pragma omp paralell for reduction(+:sum) num_threads(numThreads)
+
+  // #pragma omp paralell for reduction(+:result)
+  #pragma omp paralell for reduction(+:result) num_threads(numThreads)
   for (i = 0; i < numValues; i++) {
     result += a[i];
+    // printf("%d %d\n", omp_get_thread_num(), omp_get_num_threads());
   }
 
   return result;
