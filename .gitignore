@@ -2,6 +2,10 @@
 scripts/__pycache__/
 c-practice
 gen_array.py
+scripts/scratch.py
+.vscode
+03.1 Threads.ipynb
+3_threading.py
 001m
 10
 010k
