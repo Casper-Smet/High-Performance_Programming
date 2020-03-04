@@ -3,7 +3,7 @@
  * Casper Smet, Huib Aldewereld, HU, HPP, 2020
  * 
  * Compile by gcc -o ompArraySum -fopenmp ompArraySum.c
- * Usage: ./ompArraySum [FILENAME]
+ * Usage: ./ompArraySum > array.sum
  */
 
 #include <stdio.h>      /* I/O stuff */
