@@ -25,13 +25,12 @@ double ** testParalell(double * a, int numValues);
 // TODO Analyse data with excel
 int main(int argc, char * argv[])
 {
-  // char files[4][5] = {"010k", "100k", "001m", "010m"};
-  // int i;
-  // for (i = 0; i < 4; i++) {
-  //   printf("%s", files[i]);
-  //   // testTime(files[i]);
-  // } 
-  testTime("010k");
+  char files[4][5] = {"010k", "100k", "001m", "010m"};
+  int i;
+  for (i = 0; i < 4; i++) {
+    testTime(files[i]);
+  } 
+  
   return 0;
 }
 
@@ -43,23 +42,29 @@ double * testSerial(double * a, int numValues) {
   sumArray(a, numValues);
   sTimes[1] = omp_get_wtime();
 
+  printf("%d,1,%lf,%lf\n", numValues, sTimes[0], sTimes[1]);
+
   return sTimes;
 }
 
 double ** testParalell(double * a, int numValues) {
   int i;
-  double pTimes[4][2];
+  double pTimes[3][2];
 
-  int threadOptions[4] = {1, 2, 4, 8};
+  int threadOptions[3] = {2, 4, 8};
   int threadOption;
-  for (i = 0; i < 4; i++) {
+  for (i = 0; i < 3; i++) {
     threadOption = threadOptions[i];
     // Start time
     pTimes[i][0] = omp_get_wtime();
     paralellSumArray(a, numValues, threadOption);
     // End time
     pTimes[i][1] = omp_get_wtime();
+
+    printf("%d,%d,%lf,%lf\n", numValues, threadOption, pTimes[i][0], pTimes[i][1]);
   }
+
+  
 
   return pTimes;
 }
@@ -77,10 +82,10 @@ void testTime(char * fileName) {
 
   readArray(fileName, &a, &howMany);
 
-  // Time and run parallel
-  pTimes = testParalell(a, howMany);
   // Time and run serial
   sTimes = testSerial(a, howMany);
+  // Time and run parallel
+  pTimes = testParalell(a, howMany);
 
   free(a);
 
@@ -146,12 +151,9 @@ double sumArray(double * a, int numValues) {
 double paralellSumArray(double * a, int numValues, int numThreads) {
   int i;
   double result = 0.0;
-
-  // #pragma omp paralell for reduction(+:result)
-  #pragma omp paralell for reduction(+:result) num_threads(numThreads)
+  #pragma omp parallel for reduction(+:result) num_threads(numThreads)
   for (i = 0; i < numValues; i++) {
     result += a[i];
-    // printf("%d %d\n", omp_get_thread_num(), omp_get_num_threads());
   }
 
   return result;
