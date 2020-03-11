@@ -17,3 +17,4 @@ test
 test.c
 mpi/
 ~$circuitSatisfiabilityAnalysis.xlsx
+circuitSatisfiability
