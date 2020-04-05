@@ -28,7 +28,7 @@ def main():
     
     time0 = time.time()
     sieve(int(argv[1]))
-    print(time.time() - time0)
+    print(1, argv[1], time.time() - time0, sep=",")
     
 
 if __name__ == "__main__":

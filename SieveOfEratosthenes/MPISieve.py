@@ -1,49 +1,61 @@
-from mpi4py import MPI
 import time
-import numpy as np
-
 from sys import argv
 
-def findMultiples(k, lst):
-    indices = []
-    # ADD MPI HERE INSTEAD
-    for i in lst[k:]:
-        if i % k == 0:
-            indices.append(i)
-    return indices
+import numpy as np
+from mpi4py import MPI
 
-if __name__ == "__main__":
-    time0 = time.time()
+
+def first_common_index(start_N, k):
+    if not start_N % k:
+        index = 0
+    else:
+        index = (start_N // k + 1) * k - start_N
+    return index
+
+
+def update_partial_sieve(start_N, k, sieve):
+    if k >= start_N:
+        k = k - start_N
+        if sieve[k]:
+            sieve[k*2::k] = False
+    else:
+        start = first_common_index(start_N, k)
+        sieve[start::k] = False
+    
+
+def main():
     N = int(argv[1])
-
-    lst = list(range(2, N))
     root_N = int(N**0.5)
-
 
     comm = MPI.COMM_WORLD
     comm_rank = comm.Get_rank()
     comm_size = comm.Get_size()
-    
-    k_range = np.array_split(np.arange(2, root_N+1), comm_size)
-    data = comm.scatter(k_range, root=0)
-
-    # print(len(lst), comm_rank)
-
-    indices = []
-
-    for k in data:
-        # print(k)
-        indices += findMultiples(k, lst)
-    indices = np.array(indices)
-
-    MIndices = comm.gather(indices)
-    
     if comm_rank == 0:
-        head = MIndices[0]
-        np.append(head, MIndices[1:])
-        unique_indices = np.unique(head)
-        array = np.array(lst)
-        primes = np.delete(array, unique_indices)
-        print(time.time() - time0)
-        print(primes)
+        time0 = time.time()
+        # Find shapes for each rank's partial_sieve
+        shapes = [array.shape[0]
+                  for array in np.array_split(np.empty(N, dtype=bool), comm_size)]
+        # Find starting N for each rank
+        sizes = []
+        for i in range(len(shapes)):
+            sizes.append((shapes[i], sum(shapes[:i])))
+    else:
+        sizes = None
 
+    (shape, first_N) = comm.scatter(sizes, root=0)
+    partial_sieve = np.full(shape, True, dtype=bool)
+
+    k = 2
+    for k in range(k, root_N+1):
+        update_partial_sieve(first_N, k, partial_sieve)
+
+    split_sieve = comm.gather(partial_sieve, root=0)
+    if comm_rank == 0:
+        sieve = np.concatenate(split_sieve)
+        sieve[:2] = False
+        print(comm_size, N, time.time() - time0, sep=",")
+        # print(sieve.sum())
+
+
+if __name__ == "__main__":
+    main()
