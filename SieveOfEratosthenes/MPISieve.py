@@ -33,8 +33,17 @@ def main():
     if comm_rank == 0:
         time0 = time.time()
         # Find shapes for each rank's partial_sieve
-        shapes = [array.shape[0]
-                  for array in np.array_split(np.empty(N, dtype=bool), comm_size)]
+        size = N // comm_size
+        if N % comm_size == 0:
+            shapes = [size for i in range(comm_size)]
+        else:
+            greater_parts = comm_size - (N % comm_size)
+            shapes = []
+            for rank in range(comm_size):
+                if rank < greater_parts:
+                    shapes.append(size+1)
+                else:
+                    shapes.append(size)
         # Find starting N for each rank
         sizes = []
         for i in range(len(shapes)):
