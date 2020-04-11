@@ -32,38 +32,34 @@ def main():
     comm_size = comm.Get_size()
     if comm_rank == 0:
         time0 = time.time()
-        # Find shapes for each rank's partial_sieve
-        size = N // comm_size
-        if N % comm_size == 0:
-            shapes = [size for i in range(comm_size)]
-        else:
-            greater_parts = comm_size - (N % comm_size)
-            shapes = []
-            for rank in range(comm_size):
-                if rank < greater_parts:
-                    shapes.append(size+1)
-                else:
-                    shapes.append(size)
-        # Find starting N for each rank
-        sizes = []
-        for i in range(len(shapes)):
-            sizes.append((shapes[i], sum(shapes[:i])))
+    
+    shape = N // comm_size
+    if N % comm_size == 0:
+        first_N = shape * comm_rank
     else:
-        sizes = None
-
-    (shape, first_N) = comm.scatter(sizes, root=0)
+        greater_parts = comm_size - (N % comm_size)
+        if comm_rank < greater_parts:
+            shape += 1
+            first_N = shape * comm_rank
+        else:
+            first_N = (shape + 1) * greater_parts + shape * (comm_rank - greater_parts)
     partial_sieve = np.full(shape, True, dtype=bool)
 
+    # Dubbel werk
     k = 2
     for k in range(k, root_N+1):
         update_partial_sieve(first_N, k, partial_sieve)
 
-    split_sieve = comm.gather(partial_sieve, root=0)
     if comm_rank == 0:
-        sieve = np.concatenate(split_sieve)
-        sieve[:2] = False
+        # Assuming the first rank has at least the first two items in the Sieve
+        partial_sieve[:2] = False
+    partial_sum = partial_sieve.sum()
+    # Alleen sum teruggeven
+    total_sum = comm.reduce(partial_sum, op=MPI.SUM, root=0)
+    if comm_rank == 0:
+        # print(total_sum)
         print(comm_size, N, time.time() - time0, sep=",")
-        # print(sieve.sum())
+
 
 
 if __name__ == "__main__":
